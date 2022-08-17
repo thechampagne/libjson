@@ -1,0 +1,19 @@
+[package]
+name = "json"
+version = "1.0.0"
+description = "JSON library"
+authors = ["XXIV"]
+homepage = "https://github.com/thechampagne/libjson"
+repository = "https://github.com/thechampagne/libjson"
+readme = "README.md"
+license = "MIT"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+name = "json"
+crate-type =["cdylib","staticlib"]
+
+[dependencies]
+json = "0.12.4"
