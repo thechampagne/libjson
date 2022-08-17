@@ -5,6 +5,7 @@ use std::ffi::CStr;
 use std::ffi::CString;
 use json::parse;
 use json::JsonValue;
+use json::object::Object;
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -44,6 +45,19 @@ unsafe extern "C" fn json_parse(source: *const c_char) -> *mut json_t {
     Err(_) => return std::ptr::null_mut()
   };
   json_to_struct(json)
+}
+
+#[no_mangle]
+unsafe extern "C" fn json_object_get(object: *mut c_void, key: *const c_char) -> *mut json_t {
+  let key_rs = match CStr::from_ptr(key).to_str() {
+        Ok(s) => s,
+        Err(_) => return std::ptr::null_mut(),
+  };
+  let value = match (*(object as *mut Object)).get(key_rs) {
+    Some(v) => v,
+    None => return std::ptr::null_mut()
+  };
+  json_to_struct(value.to_owned())
 }
 
 unsafe fn json_to_struct(json: JsonValue) -> *mut json_t {
