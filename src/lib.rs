@@ -60,6 +60,21 @@ unsafe extern "C" fn json_object_get(object: *mut c_void, key: *const c_char) ->
   json_to_struct(value.to_owned())
 }
 
+/*
+#[no_mangle]
+unsafe extern "C" fn json_object_insert(object: *mut c_void, key: *const c_char, value: *const c_char) -> *mut json_t { ... }
+*/
+
+#[no_mangle]
+unsafe extern "C" fn json_object_new() -> *mut c_void {
+  Box::into_raw(Box::new(Object::new())) as *mut c_void
+}
+
+#[no_mangle]
+unsafe extern "C" fn json_object_new_with_capacity(capacity: usize) -> *mut c_void {
+  Box::into_raw(Box::new(Object::with_capacity(capacity))) as *mut c_void
+}
+
 unsafe fn json_to_struct(json: JsonValue) -> *mut json_t {
   match json {
     JsonValue::Null => {
