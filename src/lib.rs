@@ -3,9 +3,11 @@ use std::os::raw::c_int;
 use std::os::raw::c_void;
 use std::ffi::CStr;
 use std::ffi::CString;
+use std::slice;
 use json::parse;
 use json::JsonValue;
 use json::object::Object;
+use json::short::Short;
 
 #[repr(C)]
 #[allow(non_camel_case_types)]
@@ -73,6 +75,58 @@ unsafe extern "C" fn json_object_new() -> *mut c_void {
 #[no_mangle]
 unsafe extern "C" fn json_object_new_with_capacity(capacity: usize) -> *mut c_void {
   Box::into_raw(Box::new(Object::with_capacity(capacity))) as *mut c_void
+}
+
+#[no_mangle]
+unsafe extern "C" fn json_object_is_empty(object: *mut c_void) -> c_int {
+  if (*(object as *mut Object)).is_empty() {
+    return 1;
+  }
+    0
+}
+
+#[no_mangle]
+unsafe extern "C" fn json_object_len(object: *mut c_void) -> usize {
+  (*(object as *mut Object)).len()
+}
+
+#[no_mangle]
+unsafe extern "C" fn json_object_clear(object: *mut c_void) {
+  (*(object as *mut Object)).clear()
+}
+
+unsafe fn struct_to_json(struct_json: *mut json_t) -> JsonValue {
+  match (*struct_json).buffer_type {
+    json_type::JSON_TYPE_NULL => {
+      JsonValue::Null
+    },
+    json_type::JSON_TYPE_STRING => {
+      let str_rs = match CStr::from_ptr((*struct_json).buffer.string).to_str() {
+        Ok(v) => v,
+        Err(_) => ""
+      };
+      if str_rs.len() > 30 {
+        return JsonValue::Short(Short::from_slice(str_rs))
+      }
+      JsonValue::String(str_rs.to_string())
+    },
+    json_type::JSON_TYPE_NUMBER => {JsonValue::Boolean(true)}, // TODO
+    json_type::JSON_TYPE_BOOL => {
+      if (*struct_json).buffer.bool == 0 {
+        return JsonValue::Boolean(false)
+      }
+      JsonValue::Boolean(true)
+    },
+    json_type::JSON_TYPE_OBJECT => {JsonValue::Boolean(true)}, // TODO
+    json_type::JSON_TYPE_ARRAY => {
+      let mut vec = vec![];
+      let slice = slice::from_raw_parts((*struct_json).buffer.array, 0); // TODO: Add length for the array in 'json_t'
+      for i in slice {
+        vec.push(struct_to_json(*i));
+      }
+      JsonValue::Array(vec)
+    }
+  }
 }
 
 unsafe fn json_to_struct(json: JsonValue) -> *mut json_t {
