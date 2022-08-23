@@ -7,6 +7,7 @@ use std::ffi::CString;
 use std::slice;
 use json::JsonValue;
 use json::short::Short;
+use json::object::Object;
 
 pub(crate) unsafe fn struct_to_json(struct_json: *mut json_t) -> JsonValue {
     match (*struct_json).buffer_type {
@@ -19,9 +20,9 @@ pub(crate) unsafe fn struct_to_json(struct_json: *mut json_t) -> JsonValue {
           Err(_) => ""
         };
         if str_rs.len() > 30 {
-          return JsonValue::Short(Short::from_slice(str_rs))
+          return JsonValue::String(str_rs.to_string())
         }
-        JsonValue::String(str_rs.to_string())
+        JsonValue::Short(Short::from_slice(str_rs))
       },
       json_type::JSON_TYPE_NUMBER => {JsonValue::Boolean(true)}, // TODO
       json_type::JSON_TYPE_BOOL => {
@@ -30,7 +31,10 @@ pub(crate) unsafe fn struct_to_json(struct_json: *mut json_t) -> JsonValue {
         }
         JsonValue::Boolean(true)
       },
-      json_type::JSON_TYPE_OBJECT => {JsonValue::Boolean(true)}, // TODO
+      json_type::JSON_TYPE_OBJECT => {
+        let object = &((*struct_json).buffer.object as *mut Object);
+        JsonValue::Object(*Box::from_raw(*object))
+      }, // TODO
       json_type::JSON_TYPE_ARRAY => {
         let mut vec = vec![];
         let slice = slice::from_raw_parts((*struct_json).buffer.array, 0); // TODO: Add length for the array in 'json_t'
